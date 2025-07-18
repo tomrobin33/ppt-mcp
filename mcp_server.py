@@ -42,6 +42,17 @@ def initialize(**kwargs):
         }
     }
 
+@method(name="tools/list")
+def tools_list(**kwargs):
+    return {
+        "tools": [
+            {
+                "name": "parse_pptx_handler",
+                "description": "解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON"
+            }
+        ]
+    }
+
 @method
 def health(**kwargs):
     return {"status": "ok"}
