@@ -50,7 +50,30 @@ def tools_list(**kwargs):
             "tools": [
                 {
                     "name": "parse_pptx_handler",
-                    "description": "解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON"
+                    "description": "解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON",
+                    "parameters": [
+                        {
+                            "name": "file_url",
+                            "type": "string",
+                            "required": False,
+                            "description": "PPTX文件的URL"
+                        },
+                        {
+                            "name": "file_bytes_b64",
+                            "type": "string",
+                            "required": False,
+                            "description": "PPTX文件的base64内容"
+                        }
+                    ],
+                    "returns": {
+                        "type": "object",
+                        "description": "结构化PPT内容",
+                        "example": {
+                            "slides": [
+                                {"slide_index": 1, "text": ["标题", "内容"]}
+                            ]
+                        }
+                    }
                 }
             ]
         }
