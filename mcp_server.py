@@ -2,8 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import base64
-import asyncio
-from jsonrpcserver import method, async_dispatch as dispatch
+from jsonrpcserver import method, dispatch
 from parser import parse_pptx
 import logging
 
@@ -44,19 +43,19 @@ def version(**kwargs):
     return {"version": "1.0.0"}
 
 if __name__ == "__main__":
-    logging.info("MCP Server started, code version: 2025-07-19-01-unique")
-    async def main():
+    logging.info("MCP Server started, code版本: 2025-07-19-01-unique")
+    def main():
         for line in sys.stdin:
             logging.info(f"Received: {line}")
             line = line.strip()
             if not line:
                 continue
             try:
-                response = await dispatch(line)
+                response = dispatch(line)
                 logging.info(f"Dispatch response: {response}")
                 if response is not None:
                     print(response, flush=True)
             except Exception as e:
                 logging.error(f"dispatch error: {e}")
                 print('{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Internal error", "data": "%s"}}' % str(e), flush=True)
-    asyncio.run(main()) 
+    main() 
