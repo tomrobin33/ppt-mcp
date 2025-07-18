@@ -5,16 +5,24 @@ import base64
 from jsonrpcserver import method, dispatch
 from parser import parse_pptx
 import logging
+import requests
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 
 @method
 def parse_pptx_handler(**kwargs):
     try:
+        file_url = kwargs.get("file_url")
         file_bytes_b64 = kwargs.get("file_bytes_b64")
-        if not file_bytes_b64:
-            return {"code": -32602, "message": "Missing parameter: file_bytes_b64"}
-        file_bytes = base64.b64decode(file_bytes_b64)
+        if file_url:
+            resp = requests.get(file_url, timeout=10)
+            if resp.status_code != 200:
+                return {"code": -32602, "message": f"Failed to download file from url: {file_url}"}
+            file_bytes = resp.content
+        elif file_bytes_b64:
+            file_bytes = base64.b64decode(file_bytes_b64)
+        else:
+            return {"code": -32602, "message": "Missing parameter: file_url or file_bytes_b64"}
         return parse_pptx(file_bytes)
     except Exception as e:
         logging.error(f"parse_pptx_handler error: {e}")
