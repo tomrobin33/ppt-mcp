@@ -1,7 +1,7 @@
 import sys
 import base64
 import asyncio
-from jsonrpcserver import method, async_dispatch as dispatch
+from jsonrpcserver import method, async_dispatch as dispatch, Success, Error
 from parser import parse_pptx
 import logging
 
@@ -11,26 +11,26 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(m
 async def parse_pptx_handler(file_bytes_b64: str):
     try:
         file_bytes = base64.b64decode(file_bytes_b64)
-        return parse_pptx(file_bytes)
+        return Success(parse_pptx(file_bytes))
     except Exception as e:
         logging.error(f"parse_pptx_handler error: {e}")
-        return {"error": str(e)}
+        return Error(str(e))
 
 @method
 async def initialize(**kwargs):
-    return {
+    return Success({
         "service": "ppt-mcp",
         "version": "1.0.0",
         "capabilities": ["parse_pptx_handler"]
-    }
+    })
 
 @method
 async def health():
-    return {"status": "ok"}
+    return Success({"status": "ok"})
 
 @method
 async def version():
-    return {"version": "1.0.0"}
+    return Success({"version": "1.0.0"})
 
 if __name__ == "__main__":
     logging.info("MCP Server started, code version: 2025-07-19-01-unique")
