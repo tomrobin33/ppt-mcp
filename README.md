@@ -85,6 +85,57 @@ pip install -r ppt/requirements.txt
 }
 ```
 
+## JSON-RPC 方法说明
+
+### 1. initialize
+- 说明：标准 JSON-RPC 初始化方法，返回服务能力和版本信息。
+- 请求示例：
+```
+{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+```
+- 响应示例：
+```
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "service": "ppt-mcp",
+    "version": "1.0.0",
+    "capabilities": ["parse_pptx_handler"]
+  }
+}
+```
+
+### 2. parse_pptx_handler
+- 说明：解析 pptx 文件，返回结构化 JSON。
+- 参数：
+  - file_bytes_b64: pptx 文件的 base64 编码字符串
+- 请求示例：
+```
+{"jsonrpc": "2.0", "id": 2, "method": "parse_pptx_handler", "params": {"file_bytes_b64": "..."}}
+```
+- 响应示例：
+```
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "slides": [
+      {"slide_index": 1, "text": ["标题", "内容"]},
+      ...
+    ]
+  }
+}
+```
+- 错误响应示例：
+```
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "error": {"code": -32000, "message": "Internal error", "data": "错误信息"}
+}
+```
+
 ## 容器化部署
 ```bash
 docker build -t pptx-parser .

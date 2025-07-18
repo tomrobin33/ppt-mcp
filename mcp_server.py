@@ -1,19 +1,35 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import base64
-from jsonrpcserver import method, dispatch
-from parser import parse_pptx
 import logging
+from typing import Optional, Dict, Any
+from fastmcp import FastMCP, tool
 import requests
+from parser import parse_pptx
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 
-@method
-def parse_pptx_handler(**kwargs):
+mcp = FastMCP(
+    "ppt-mcp",
+    version="1.0.0",
+    description="PPTX结构化解析MCP Server，支持file_url和base64两种方式上传PPTX文件，返回结构化JSON。"
+)
+
+@tool(
+    name="parse_pptx_handler",
+    description="解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON"
+)
+def parse_pptx_handler(
+    file_url: Optional[str] = None,
+    file_bytes_b64: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON。
+    :param file_url: PPTX文件的URL
+    :param file_bytes_b64: PPTX文件的base64内容
+    :return: 结构化PPT内容
+    """
     try:
-        file_url = kwargs.get("file_url")
-        file_bytes_b64 = kwargs.get("file_bytes_b64")
         if file_url:
             resp = requests.get(file_url, timeout=10)
             if resp.status_code != 200:
@@ -28,83 +44,5 @@ def parse_pptx_handler(**kwargs):
         logging.error(f"parse_pptx_handler error: {e}")
         return {"code": -32000, "message": str(e)}
 
-@method(name="initialize")
-def initialize(**kwargs):
-    protocol_version = kwargs.get("protocolVersion", "2024-11-05")
-    return {
-        "protocolVersion": protocol_version,
-        "capabilities": {
-            "parse_pptx_handler": True
-        },
-        "serverInfo": {
-            "name": "ppt-mcp",
-            "version": "1.0.0"
-        }
-    }
-
-@method(name="tools/list")
-def tools_list(**kwargs):
-    try:
-        logging.info("tools/list called, kwargs: %s", kwargs)
-        result = {
-            "tools": [
-                {
-                    "name": "parse_pptx_handler",
-                    "description": "解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON",
-                    "parameters": [
-                        {
-                            "name": "file_url",
-                            "type": "string",
-                            "required": False,
-                            "description": "PPTX文件的URL"
-                        },
-                        {
-                            "name": "file_bytes_b64",
-                            "type": "string",
-                            "required": False,
-                            "description": "PPTX文件的base64内容"
-                        }
-                    ],
-                    "returns": {
-                        "type": "object",
-                        "description": "结构化PPT内容",
-                        "example": {
-                            "slides": [
-                                {"slide_index": 1, "text": ["标题", "内容"]}
-                            ]
-                        }
-                    }
-                }
-            ]
-        }
-        logging.info("tools/list result: %s", result)
-        return result
-    except Exception as e:
-        logging.error(f"tools/list error: {e}")
-        return {"code": -32000, "message": str(e)}
-
-@method
-def health(**kwargs):
-    return {"status": "ok"}
-
-@method
-def version(**kwargs):
-    return {"version": "1.0.0"}
-
 if __name__ == "__main__":
-    logging.info("MCP Server started, code版本: 2025-07-19-01-unique")
-    def main():
-        for line in sys.stdin:
-            logging.info(f"Received: {line}")
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                response = dispatch(line)
-                logging.info(f"Dispatch response: {response}")
-                if response is not None:
-                    print(response, flush=True)
-            except Exception as e:
-                logging.error(f"dispatch error: {e}")
-                print('{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Internal error", "data": "%s"}}' % str(e), flush=True)
-    main() 
+    mcp.run() 

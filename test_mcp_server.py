@@ -1,32 +1,25 @@
 import base64
-import json
 import unittest
-from jsonrpcserver import method, dispatch
-from parser import parse_pptx
+from mcp_server import parse_pptx_handler
 
-# Mock pptx内容
 MOCK_PPTX_BYTES = b"FakePPTXContent"
 MOCK_PPTX_B64 = base64.b64encode(MOCK_PPTX_BYTES).decode()
 
 class TestMCPServer(unittest.TestCase):
-    def test_initialize(self):
-        req = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
-        resp = dispatch(req)
-        self.assertIn('protocolVersion', str(resp))
-        self.assertIn('serverInfo', str(resp))
+    def test_parse_pptx_handler_with_b64(self):
+        resp = parse_pptx_handler(file_bytes_b64=MOCK_PPTX_B64)
+        self.assertIn("slides", resp)
 
-    def test_parse_pptx_handler(self):
-        req = json.dumps({
-            "jsonrpc": "2.0", "id": 2, "method": "parse_pptx_handler",
-            "params": {"file_bytes_b64": MOCK_PPTX_B64}
-        })
-        resp = dispatch(req)
-        self.assertIn('slides', str(resp))
+    def test_parse_pptx_handler_with_url(self):
+        # 这里可以用一个无效URL测试错误分支
+        resp = parse_pptx_handler(file_url="http://invalid-url.com/test.pptx")
+        self.assertIn("code", resp)
+        self.assertNotEqual(resp["code"], 0)
 
-    def test_method_not_found(self):
-        req = json.dumps({"jsonrpc": "2.0", "id": 3, "method": "not_exist", "params": {}})
-        resp = dispatch(req)
-        self.assertIn('Method not found', str(resp))
+    def test_parse_pptx_handler_missing_param(self):
+        resp = parse_pptx_handler()
+        self.assertIn("code", resp)
+        self.assertNotEqual(resp["code"], 0)
 
 if __name__ == "__main__":
     unittest.main() 
