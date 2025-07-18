@@ -1,5 +1,1 @@
-fastapi
-python-pptx
-uvicorn
-python-multipart
-jsonrpcserver 
+wheel==0.45.1
