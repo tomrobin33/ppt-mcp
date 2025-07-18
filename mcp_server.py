@@ -10,8 +10,11 @@ import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 
 @method
-def parse_pptx_handler(file_bytes_b64: str):
+def parse_pptx_handler(**kwargs):
     try:
+        file_bytes_b64 = kwargs.get("file_bytes_b64")
+        if not file_bytes_b64:
+            return {"code": -32602, "message": "Missing parameter: file_bytes_b64"}
         file_bytes = base64.b64decode(file_bytes_b64)
         return parse_pptx(file_bytes)
     except Exception as e:
@@ -19,8 +22,8 @@ def parse_pptx_handler(file_bytes_b64: str):
         return {"code": -32000, "message": str(e)}
 
 @method(name="initialize")
-def initialize(**params):
-    protocol_version = params.get("protocolVersion", "2024-11-05")
+def initialize(**kwargs):
+    protocol_version = kwargs.get("protocolVersion", "2024-11-05")
     return {
         "protocolVersion": protocol_version,
         "capabilities": {
@@ -33,11 +36,11 @@ def initialize(**params):
     }
 
 @method
-def health():
+def health(**kwargs):
     return {"status": "ok"}
 
 @method
-def version():
+def version(**kwargs):
     return {"version": "1.0.0"}
 
 if __name__ == "__main__":
