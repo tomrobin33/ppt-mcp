@@ -42,11 +42,13 @@ if __name__ == "__main__":
     logging.info("MCP Server started, code version: 2025-07-19-01-unique")
     async def main():
         for line in sys.stdin:
+            logging.info(f"Received: {line}")
             line = line.strip()
             if not line:
                 continue
             try:
                 response = await dispatch(line)
+                logging.info(f"Dispatch response: {response}")
                 if response is not None:
                     print(response, flush=True)
             except Exception as e:

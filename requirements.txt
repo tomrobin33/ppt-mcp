@@ -2,5 +2,5 @@ fastapi
 uvicorn
 python-pptx
 python-multipart
-jsonrpcserver
+jsonrpcserver==4.3.6
 # wheel（如需本地打包时用，可放最后或注释掉）
