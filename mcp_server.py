@@ -44,14 +44,21 @@ def initialize(**kwargs):
 
 @method(name="tools/list")
 def tools_list(**kwargs):
-    return {
-        "tools": [
-            {
-                "name": "parse_pptx_handler",
-                "description": "解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON"
-            }
-        ]
-    }
+    try:
+        logging.info("tools/list called, kwargs: %s", kwargs)
+        result = {
+            "tools": [
+                {
+                    "name": "parse_pptx_handler",
+                    "description": "解析 PPTX 文件，支持 file_url 或 base64，返回结构化 JSON"
+                }
+            ]
+        }
+        logging.info("tools/list result: %s", result)
+        return result
+    except Exception as e:
+        logging.error(f"tools/list error: {e}")
+        return {"code": -32000, "message": str(e)}
 
 @method
 def health(**kwargs):
