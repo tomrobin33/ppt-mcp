@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from ppt.parser import parse_pptx
+from parser import parse_pptx
 from fastapi import status
 from fastapi.openapi.utils import get_openapi
 
