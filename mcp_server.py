@@ -17,9 +17,10 @@ async def parse_pptx_handler(file_bytes_b64: str):
         return Error(str(e))
 
 @method
-async def initialize(**kwargs):
+async def initialize(**params):
+    protocol_version = params.get("protocolVersion", "2024-11-05")
     return Success({
-        "protocolVersion": "1.0",
+        "protocolVersion": protocol_version,
         "capabilities": {
             "parse_pptx_handler": True
         },
