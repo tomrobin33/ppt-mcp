@@ -24,7 +24,7 @@ async def initialize(**kwargs):
             "parse_pptx_handler": True
         },
         "serverInfo": {
-            "service": "ppt-mcp",
+            "name": "ppt-mcp",
             "version": "1.0.0"
         }
     })
