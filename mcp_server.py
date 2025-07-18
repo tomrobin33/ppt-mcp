@@ -19,9 +19,14 @@ async def parse_pptx_handler(file_bytes_b64: str):
 @method
 async def initialize(**kwargs):
     return Success({
-        "service": "ppt-mcp",
-        "version": "1.0.0",
-        "capabilities": ["parse_pptx_handler"]
+        "protocolVersion": "2.0",
+        "capabilities": {
+            "parse_pptx_handler": True
+        },
+        "serverInfo": {
+            "service": "ppt-mcp",
+            "version": "1.0.0"
+        }
     })
 
 @method
