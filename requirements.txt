@@ -2,4 +2,4 @@ fastapi
 python-pptx
 uvicorn
 python-multipart
-python-jsonrpc-server 
+jsonrpcserver 
