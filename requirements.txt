@@ -3,5 +3,5 @@ uvicorn
 python-pptx
 python-multipart
 requests
-fastmcp
+mcp[cli]>=1.10.1
 # wheel（如需本地打包时用，可放最后或注释掉）
