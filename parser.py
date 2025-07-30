@@ -41,6 +41,65 @@ def extract_text_from_shape(shape) -> List[str]:
             texts.extend(extract_text_from_shape(sub_shape))
     return texts
 
+
+def extract_table_from_shape(shape) -> Optional[List[List[str]]]:
+    """
+    从PPT形状中提取表格结构化数据。
+    
+    Args:
+        shape: PPT中的形状对象
+        
+    Returns:
+        表格数据（二维数组），如果不是表格则返回None
+    """
+    if shape.shape_type == 19:  # MSO_SHAPE_TYPE.TABLE
+        table_data = []
+        for row in shape.table.rows:
+            row_data = []
+            for cell in row.cells:
+                cell_text = cell.text_frame.text.strip()
+                row_data.append(cell_text)
+            table_data.append(row_data)
+        return table_data
+    return None
+
+
+def extract_all_content_from_shape(shape) -> Dict[str, Any]:
+    """
+    从PPT形状中提取所有内容（文本和表格）。
+    
+    Args:
+        shape: PPT中的形状对象
+        
+    Returns:
+        包含文本和表格数据的字典
+    """
+    content = {
+        "texts": [],
+        "tables": []
+    }
+    
+    # 提取文本
+    if hasattr(shape, "text"):
+        text = shape.text.strip()
+        if text:
+            content["texts"].append(text)
+    
+    # 提取表格
+    if shape.shape_type == 19:  # MSO_SHAPE_TYPE.TABLE
+        table_data = extract_table_from_shape(shape)
+        if table_data:
+            content["tables"].append(table_data)
+    
+    # 处理分组形状
+    if hasattr(shape, "shapes"):
+        for sub_shape in shape.shapes:
+            sub_content = extract_all_content_from_shape(sub_shape)
+            content["texts"].extend(sub_content["texts"])
+            content["tables"].extend(sub_content["tables"])
+    
+    return content
+
 def parse_pptx(file_bytes: bytes) -> Dict[str, Any]:
     """
     解析 PPTX 文件，返回结构化 JSON。
@@ -48,7 +107,7 @@ def parse_pptx(file_bytes: bytes) -> Dict[str, Any]:
     功能说明：
     1. 支持内容：
        - 文本框中的文本
-       - 表格中的文本
+       - 表格中的文本和结构化数据
        - 分组形状中的文本
        
     2. 返回格式：
@@ -56,7 +115,11 @@ def parse_pptx(file_bytes: bytes) -> Dict[str, Any]:
            "slides": [
                {
                    "slide_index": 1,
-                   "text": ["文本1", "文本2", ...]
+                   "text": ["文本1", "文本2", ...],
+                   "tables": [
+                       [["单元格1", "单元格2"], ["单元格3", "单元格4"]],
+                       ...
+                   ]
                },
                ...
            ]
@@ -66,7 +129,7 @@ def parse_pptx(file_bytes: bytes) -> Dict[str, Any]:
         file_bytes: PPTX文件的二进制内容
         
     Returns:
-        包含所有幻灯片文本内容的字典
+        包含所有幻灯片内容的字典
         
     Raises:
         ValueError: 当文件不是有效的PPTX格式时抛出
@@ -77,16 +140,19 @@ def parse_pptx(file_bytes: bytes) -> Dict[str, Any]:
         raise ValueError(f"无法读取 pptx 文件: {e}")
     slides = []
     for idx, slide in enumerate(prs.slides, start=1):
-        texts = []
+        slide_content = {
+            "slide_index": idx,
+            "text": [],
+            "tables": []
+        }
         for shape in slide.shapes:
             try:
-                texts.extend(extract_text_from_shape(shape))
+                content = extract_all_content_from_shape(shape)
+                slide_content["text"].extend(content["texts"])
+                slide_content["tables"].extend(content["tables"])
             except Exception:
                 continue
-        slides.append({
-            "slide_index": idx,
-            "text": texts
-        })
+        slides.append(slide_content)
     return {"slides": slides}
 
 
@@ -149,6 +215,71 @@ def parse_docx(file_bytes: bytes) -> Dict[str, Any]:
     finally:
         os.remove(tmp_path)
     return result
+
+
+def extract_tables_from_pptx(file_bytes: bytes) -> Dict[str, Any]:
+    """
+    专门从PPTX文件中提取所有表格数据。
+    
+    功能说明：
+    1. 提取所有幻灯片中的表格
+    2. 保持表格的行列结构
+    3. 为每个表格添加来源信息
+    
+    2. 返回格式：
+       {
+           "total_tables": 5,
+           "tables": [
+               {
+                   "table_index": 1,
+                   "slide_index": 2,
+                   "data": [["标题1", "标题2"], ["数据1", "数据2"]],
+                   "rows": 2,
+                   "columns": 2
+               },
+               ...
+           ]
+       }
+    
+    Args:
+        file_bytes: PPTX文件的二进制内容
+        
+    Returns:
+        包含所有表格数据的字典
+        
+    Raises:
+        ValueError: 当文件不是有效的PPTX格式时抛出
+    """
+    try:
+        prs = Presentation(BytesIO(file_bytes))
+    except Exception as e:
+        raise ValueError(f"无法读取 pptx 文件: {e}")
+    
+    all_tables = []
+    table_index = 1
+    
+    for slide_idx, slide in enumerate(prs.slides, start=1):
+        for shape in slide.shapes:
+            try:
+                if shape.shape_type == 19:  # MSO_SHAPE_TYPE.TABLE
+                    table_data = extract_table_from_shape(shape)
+                    if table_data and len(table_data) > 0:
+                        table_info = {
+                            "table_index": table_index,
+                            "slide_index": slide_idx,
+                            "data": table_data,
+                            "rows": len(table_data),
+                            "columns": len(table_data[0]) if table_data else 0
+                        }
+                        all_tables.append(table_info)
+                        table_index += 1
+            except Exception:
+                continue
+    
+    return {
+        "total_tables": len(all_tables),
+        "tables": all_tables
+    }
 
 
 def parse_xlsx(file_bytes: bytes) -> Dict[str, Any]:
