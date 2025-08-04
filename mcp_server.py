@@ -14,7 +14,7 @@ logger = logging.getLogger("ppt-mcp")
 # 初始化 FastMCP 服务器
 mcp = FastMCP(
     "ppt-mcp",
-    description="文档解析MCP Server，支持PPTX、DOCX、XLSX文件的解析，返回结构化JSON。"
+    instructions="文档解析MCP Server，支持PPTX、DOCX、XLSX文件的解析，返回结构化JSON。"
 )
 
 @mcp.tool()
