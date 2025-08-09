@@ -11,6 +11,42 @@ from parser import parse_pptx, parse_docx, parse_xlsx, parse_pdf
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 logger = logging.getLogger("ppt-mcp")
 
+def clean_and_validate_url(url: str) -> str:
+    """
+    清理和验证URL，移除末尾的无效字符和多余斜杠
+    
+    Args:
+        url: 原始URL字符串
+        
+    Returns:
+        清理后的URL字符串
+    """
+    if not url:
+        return url
+    
+    # 确保URL以http://或https://开头
+    if not url.startswith(('http://', 'https://')):
+        raise ValueError(f"Invalid URL scheme: {url}")
+    
+    # 移除URL中的多余斜杠（除了协议部分）
+    if '://' in url:
+        scheme, rest = url.split('://', 1)
+        # 移除路径中的多余斜杠，但保留查询参数
+        if '?' in rest:
+            path, query = rest.split('?', 1)
+            # 清理路径中的多余斜杠
+            path = '/'.join(filter(None, path.split('/')))
+            # 清理查询参数末尾的无效字符
+            query = query.rstrip('/')
+            url = f"{scheme}://{path}?{query}"
+        else:
+            # 清理路径中的多余斜杠
+            path = '/'.join(filter(None, rest.split('/')))
+            url = f"{scheme}://{path}"
+    
+    logger.info(f"Cleaned URL: {url}")
+    return url
+
 # 初始化 FastMCP 服务器
 mcp = FastMCP(
     "ppt-mcp",
@@ -54,10 +90,12 @@ def parse_pptx_handler(
     try:
         # 获取文件内容
         if file_url:
-            logger.info(f"Downloading file from URL: {file_url}")
-            resp = requests.get(file_url, timeout=10)
+            # 清理和验证URL
+            cleaned_url = clean_and_validate_url(file_url)
+            logger.info(f"Downloading file from URL: {cleaned_url}")
+            resp = requests.get(cleaned_url, timeout=10)
             if resp.status_code != 200:
-                error_msg = f"Failed to download file from url: {file_url}"
+                error_msg = f"Failed to download file from url: {cleaned_url}"
                 logger.error(error_msg)
                 return f"Error: {error_msg}"
             file_bytes = resp.content
@@ -122,10 +160,12 @@ def parse_docx_handler(
     try:
         # 获取文件内容
         if file_url:
-            logger.info(f"Downloading file from URL: {file_url}")
-            resp = requests.get(file_url, timeout=10)
+            # 清理和验证URL
+            cleaned_url = clean_and_validate_url(file_url)
+            logger.info(f"Downloading file from URL: {cleaned_url}")
+            resp = requests.get(cleaned_url, timeout=10)
             if resp.status_code != 200:
-                error_msg = f"Failed to download file from url: {file_url}"
+                error_msg = f"Failed to download file from url: {cleaned_url}"
                 logger.error(error_msg)
                 return f"Error: {error_msg}"
             file_bytes = resp.content
@@ -191,10 +231,12 @@ def parse_xlsx_handler(
     try:
         # 获取文件内容
         if file_url:
-            logger.info(f"Downloading file from URL: {file_url}")
-            resp = requests.get(file_url, timeout=10)
+            # 清理和验证URL
+            cleaned_url = clean_and_validate_url(file_url)
+            logger.info(f"Downloading file from URL: {cleaned_url}")
+            resp = requests.get(cleaned_url, timeout=10)
             if resp.status_code != 200:
-                error_msg = f"Failed to download file from url: {file_url}"
+                error_msg = f"Failed to download file from url: {cleaned_url}"
                 logger.error(error_msg)
                 return f"Error: {error_msg}"
             file_bytes = resp.content
@@ -267,10 +309,12 @@ def parse_pdf_handler(
     try:
         # 获取文件内容
         if file_url:
-            logger.info(f"Downloading file from URL: {file_url}")
-            resp = requests.get(file_url, timeout=10)
+            # 清理和验证URL
+            cleaned_url = clean_and_validate_url(file_url)
+            logger.info(f"Downloading file from URL: {cleaned_url}")
+            resp = requests.get(cleaned_url, timeout=10)
             if resp.status_code != 200:
-                error_msg = f"Failed to download file from url: {file_url}"
+                error_msg = f"Failed to download file from url: {cleaned_url}"
                 logger.error(error_msg)
                 return f"Error: {error_msg}"
             file_bytes = resp.content

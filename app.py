@@ -7,6 +7,41 @@ from fastapi.openapi.utils import get_openapi
 import requests
 import mimetypes
 
+def clean_and_validate_url(url: str) -> str:
+    """
+    清理和验证URL，移除末尾的无效字符和多余斜杠
+    
+    Args:
+        url: 原始URL字符串
+        
+    Returns:
+        清理后的URL字符串
+    """
+    if not url:
+        return url
+    
+    # 确保URL以http://或https://开头
+    if not url.startswith(('http://', 'https://')):
+        raise ValueError(f"Invalid URL scheme: {url}")
+    
+    # 移除URL中的多余斜杠（除了协议部分）
+    if '://' in url:
+        scheme, rest = url.split('://', 1)
+        # 移除路径中的多余斜杠，但保留查询参数
+        if '?' in rest:
+            path, query = rest.split('?', 1)
+            # 清理路径中的多余斜杠
+            path = '/'.join(filter(None, path.split('/')))
+            # 清理查询参数末尾的无效字符
+            query = query.rstrip('/')
+            url = f"{scheme}://{path}?{query}"
+        else:
+            # 清理路径中的多余斜杠
+            path = '/'.join(filter(None, rest.split('/')))
+            url = f"{scheme}://{path}"
+    
+    return url
+
 app = FastAPI(
     title="PPTX 解析微服务",
     description="上传 .pptx 文件，返回结构化 JSON 内容。",
@@ -310,13 +345,15 @@ async def parse_url(url: str):
     ```
     """
     try:
-        resp = requests.get(url)
+        # 清理和验证URL
+        cleaned_url = clean_and_validate_url(url)
+        resp = requests.get(cleaned_url)
         resp.raise_for_status()
         file_bytes = resp.content
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"文件下载失败: {e}")
     # 文件类型判断
-    filename = url.split("?")[0].split("/")[-1]
+    filename = cleaned_url.split("?")[0].split("/")[-1]
     ext = filename.lower().split(".")[-1]
     if ext == "pptx":
         result = parse_pptx(file_bytes)
