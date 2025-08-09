@@ -7,6 +7,9 @@ import tempfile
 import os
 from typing import Any, Dict
 from PIL import Image
+# PDF解析相关导入
+import PyPDF2
+import pdfplumber
 
 
 def extract_text_from_shape(shape) -> List[str]:
@@ -148,6 +151,115 @@ def parse_docx(file_bytes: bytes) -> Dict[str, Any]:
                 result["images"].append({"filename": os.path.basename(rel.target_ref), "size": len(image_bytes)})
     finally:
         os.remove(tmp_path)
+    return result
+
+
+def parse_pdf(file_bytes: bytes) -> Dict[str, Any]:
+    """
+    解析 PDF 文件，返回结构化 JSON。
+    
+    功能说明：
+    1. 支持内容：
+       - 文档中的所有页面文本
+       - 表格内容（使用pdfplumber提取）
+       - 页面元数据（页数、页面大小等）
+       - 图片信息（如果存在）
+       
+    2. 返回格式：
+       {
+           "pages": [
+               {
+                   "page_number": 1,
+                   "text": "页面文本内容",
+                   "tables": [
+                       [["单元格1", "单元格2"], ["单元格3", "单元格4"]],
+                       ...
+                   ],
+                   "images": [
+                       {"bbox": [x1, y1, x2, y2], "type": "image"},
+                       ...
+                   ]
+               },
+               ...
+           ],
+           "metadata": {
+               "total_pages": 10,
+               "title": "文档标题",
+               "author": "作者",
+               "subject": "主题",
+               "creator": "创建者"
+           }
+       }
+    
+    Args:
+        file_bytes: PDF文件的二进制内容
+        
+    Returns:
+        包含PDF内容的结构化字典
+        
+    Raises:
+        ValueError: 当文件不是有效的PDF格式时抛出
+    """
+    result = {"pages": [], "metadata": {}}
+    
+    try:
+        # 使用PyPDF2获取基本信息和文本
+        pdf_reader = PyPDF2.PdfReader(BytesIO(file_bytes))
+        
+        # 获取元数据
+        if pdf_reader.metadata:
+            result["metadata"] = {
+                "total_pages": len(pdf_reader.pages),
+                "title": pdf_reader.metadata.get('/Title', ''),
+                "author": pdf_reader.metadata.get('/Author', ''),
+                "subject": pdf_reader.metadata.get('/Subject', ''),
+                "creator": pdf_reader.metadata.get('/Creator', '')
+            }
+        else:
+            result["metadata"] = {
+                "total_pages": len(pdf_reader.pages),
+                "title": "",
+                "author": "",
+                "subject": "",
+                "creator": ""
+            }
+        
+        # 使用pdfplumber进行更详细的解析
+        with pdfplumber.open(BytesIO(file_bytes)) as pdf:
+            for page_num, page in enumerate(pdf.pages, start=1):
+                page_data = {
+                    "page_number": page_num,
+                    "text": "",
+                    "tables": [],
+                    "images": []
+                }
+                
+                # 提取文本
+                page_text = page.extract_text()
+                if page_text:
+                    page_data["text"] = page_text.strip()
+                
+                # 提取表格
+                tables = page.extract_tables()
+                for table in tables:
+                    if table:  # 确保表格不为空
+                        page_data["tables"].append(table)
+                
+                # 提取图片信息
+                images = page.images
+                for img in images:
+                    page_data["images"].append({
+                        "bbox": img['bbox'],
+                        "type": "image",
+                        "width": img['width'],
+                        "height": img['height']
+                    })
+                
+                result["pages"].append(page_data)
+                
+    except Exception as e:
+        raise ValueError(f"无法读取 PDF 文件: {e}")
+    
     return result
 
 

@@ -1,17 +1,21 @@
-# PPTX 结构化解析服务（支持 HTTP & MCP 协议）
+# 文档结构化解析服务（支持 HTTP & MCP 协议）
 
 ## 项目简介
-本项目是一个用于解析 .pptx（PowerPoint）文件并将其内容结构化为 JSON 的服务，支持两种协议：
-- **HTTP（FastAPI）**：通过 RESTful API 上传 pptx 文件，返回结构化 JSON。
+本项目是一个用于解析多种文档格式（PPTX、DOCX、XLSX、PDF）并将其内容结构化为 JSON 的服务，支持两种协议：
+- **HTTP（FastAPI）**：通过 RESTful API 上传文档文件，返回结构化 JSON。
 - **MCP（JSON-RPC over stdio）**：通过标准输入输出（stdio）协议，适合集成到编辑器、自动化工具、AI 编排等场景。
 
 适用于：
-- 教育、办公、AI、内容审核等场景下的 PPT 内容结构化提取
-- 需要批量处理 PPT 文件的自动化系统
+- 教育、办公、AI、内容审核等场景下的文档内容结构化提取
+- 需要批量处理多种文档格式的自动化系统
 - 需要通过 HTTP 或进程间通信（stdio）调用的多种平台
 
 ## 功能特性
-- 支持解析 .pptx 文件，提取每张幻灯片的所有文本内容（包括分组、表格等）
+- 支持解析多种文档格式：
+  - **PPTX**：提取每张幻灯片的所有文本内容（包括分组、表格等）
+  - **DOCX**：提取段落、表格和图片信息
+  - **XLSX**：提取工作表内容、单元格值和公式
+  - **PDF**：提取页面文本、表格、图片和元数据
 - 输出结构化 JSON，便于后续处理
 - 支持 HTTP 文件上传接口和 MCP stdio 协议
 - 可容器化部署，易于分享和集成
@@ -20,7 +24,7 @@
 ```
 ppt/
 ├── app.py            # FastAPI HTTP 服务主程序
-├── parser.py         # PPTX 解析核心逻辑
+├── parser.py         # 文档解析核心逻辑（支持PPTX、DOCX、XLSX、PDF）
 ├── mcp_server.py     # MCP (JSON-RPC over stdio) 服务主程序
 ├── requirements.txt  # 依赖清单
 ├── Dockerfile        # 容器部署文件
@@ -47,7 +51,17 @@ pip install -r ppt/requirements.txt
 - 访问接口文档：http://127.0.0.1:8000/docs
 - 示例调用：
   ```bash
+  # 解析PPTX文件
   curl -F "file=@你的文件.pptx" http://127.0.0.1:8000/parse-ppt
+  
+  # 解析PDF文件
+  curl -F "file=@你的文件.pdf" http://127.0.0.1:8000/parse-pdf
+  
+  # 解析DOCX文件
+  curl -F "file=@你的文件.docx" http://127.0.0.1:8000/parse-docx
+  
+  # 解析XLSX文件
+  curl -F "file=@你的文件.xlsx" http://127.0.0.1:8000/parse-xlsx
   ```
 
 ### 2. MCP (JSON-RPC over stdio) 服务

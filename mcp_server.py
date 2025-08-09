@@ -5,7 +5,7 @@ import logging
 from typing import Optional, Dict, Any
 from mcp.server.fastmcp import FastMCP
 import requests
-from parser import parse_pptx, parse_docx, parse_xlsx
+from parser import parse_pptx, parse_docx, parse_xlsx, parse_pdf
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
@@ -14,7 +14,7 @@ logger = logging.getLogger("ppt-mcp")
 # 初始化 FastMCP 服务器
 mcp = FastMCP(
     "ppt-mcp",
-    instructions="文档解析MCP Server，支持PPTX、DOCX、XLSX文件的解析，返回结构化JSON。"
+    instructions="文档解析MCP Server，支持PPTX、DOCX、XLSX、PDF文件的解析，返回结构化JSON。"
 )
 
 @mcp.tool()
@@ -215,6 +215,82 @@ def parse_xlsx_handler(
         return json.dumps(result, ensure_ascii=False, indent=2)
     except Exception as e:
         error_msg = f"parse_xlsx_handler error: {e}"
+        logger.error(error_msg)
+        return f"Error: {str(e)}"
+
+@mcp.tool()
+def parse_pdf_handler(
+    file_url: Optional[str] = None,
+    file_bytes_b64: Optional[str] = None
+) -> str:
+    """
+    解析 PDF 文件，支持 file_url 或 base64，返回结构化 JSON。
+    注意：此工具函数仅支持解析 PDF 格式文件，不支持 PPTX、DOCX 或 XLSX。
+    
+    调用步骤：
+    1. 文件类型检查：
+       - 确保待解析的文件是 PDF 格式
+       - 可以通过文件扩展名或文件头部特征进行判断
+       
+    2. 文件获取方式：
+       - URL方式：提供 file_url 参数，指向可下载的PDF文件
+       - Base64方式：提供 file_bytes_b64 参数，包含PDF文件的base64编码内容
+       
+    3. 错误处理：
+       - 如果文件不是PDF格式，会抛出相应错误
+       - 如果文件下载失败，会返回错误信息
+       - 如果base64解码失败，会返回错误信息
+    
+    Args:
+        file_url: PDF文件的URL，与file_bytes_b64参数二选一
+        file_bytes_b64: PDF文件的base64内容，与file_url参数二选一
+        
+    Returns:
+        结构化PDF内容的JSON字符串，包含：
+        - pages: 页面列表，每个页面包含：
+          - page_number: 页码
+          - text: 页面文本内容
+          - tables: 表格内容
+          - images: 图片信息
+        - metadata: 文档元数据，包含：
+          - total_pages: 总页数
+          - title: 文档标题
+          - author: 作者
+          - subject: 主题
+          - creator: 创建者
+        
+    错误返回示例：
+        - "Error: Failed to download file from url: {url}"
+        - "Error: Missing parameter: file_url or file_bytes_b64"
+        - "Error: Invalid file format, only PDF files are supported"
+    """
+    try:
+        # 获取文件内容
+        if file_url:
+            logger.info(f"Downloading file from URL: {file_url}")
+            resp = requests.get(file_url, timeout=10)
+            if resp.status_code != 200:
+                error_msg = f"Failed to download file from url: {file_url}"
+                logger.error(error_msg)
+                return f"Error: {error_msg}"
+            file_bytes = resp.content
+            logger.info(f"Successfully downloaded file, size: {len(file_bytes)} bytes")
+        elif file_bytes_b64:
+            logger.info("Processing base64 encoded file")
+            file_bytes = base64.b64decode(file_bytes_b64)
+            logger.info(f"Successfully decoded base64, size: {len(file_bytes)} bytes")
+        else:
+            error_msg = "Missing parameter: file_url or file_bytes_b64"
+            logger.error(error_msg)
+            return f"Error: {error_msg}"
+        
+        # 解析PDF文件
+        result = parse_pdf(file_bytes)
+        logger.info(f"Successfully parsed PDF, found {len(result.get('pages', []))} pages")
+        import json
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        error_msg = f"parse_pdf_handler error: {e}"
         logger.error(error_msg)
         return f"Error: {str(e)}"
 

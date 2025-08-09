@@ -9,3 +9,6 @@ python-docx
 openpyxl
 Pillow
 requests
+# PDF解析相关依赖
+PyPDF2
+pdfplumber
